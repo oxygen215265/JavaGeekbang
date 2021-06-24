@@ -8,20 +8,16 @@ import java.nio.file.StandardOpenOption;
 
 public class MyClassLoader extends ClassLoader {
 
-
-    public static void main(String[] args)  {
-
+    public static void main(String[] args) {
         try {
             MyClassLoader classLoader = new MyClassLoader();
-
             Class<?> hellpClass = classLoader.loadClass("Hello");
             Method method = hellpClass.getMethod("hello");
             method.invoke(hellpClass.newInstance());
-
-
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         }
+
     }
 
     @Override
@@ -32,11 +28,9 @@ public class MyClassLoader extends ClassLoader {
                 byte temp = bytes[i];
                 bytes[i] = (byte) (255-temp);
             }
-
             //verify result
             Files.write(Paths.get("G:\\javaWork\\Hello.class"), bytes, StandardOpenOption.CREATE);
             return defineClass(name,bytes,0,bytes.length);
-
         } catch (IOException e) {
             e.printStackTrace();
             return null;
