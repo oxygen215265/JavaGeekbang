@@ -4,6 +4,8 @@
 # Serial GC
 
 Command: -Xmx256m -Xms256m -XX:+PrintGCDetails -XX:+UseSerialGC
+新生代：serial 单线程 复制算法
+老年代：serial old 单线程 标记整理
 
 ## Heap
  def new generation   total 78656K, used 20564K
@@ -40,6 +42,9 @@ Eden区满触发Minor GC，与之前类似，survive区装不下所有存活对�
 
 -Xmx1g -Xms1g -XX:+PrintGCDetails -XX:+UseParallelGC
 
+新生代 ParNew 多线程 复制算法
+老年代 Parallel Old 多线程 标记整理
+
 ## Heap
 
  PSYoungGen      total 232960K, used 45683K 
@@ -71,6 +76,9 @@ Full GC，Ergonomics 表示此次GC是由于空间担保失败，晋升到老年
 # CMS GC
 
 -Xmx1g -Xms1g -XX:+PrintGCDetails -XX:+UseConcMarkSweepGC
+
+新生代：ParNew 多线程 复制
+老年代：CMS 多线程 标记清除
 
 ## Heap
 
@@ -150,6 +158,8 @@ YoungGC触发条件及部分对象提前晋升和串行/并行回收器一样，
 # G1 GC
 
 -Xmx512m -Xms512m -XX:+PrintGCDetails -XX:+UseG1GC
+新生代老年代均为 G1 多线程 复制+标记整理
+
 
 ## Heap
 garbage-first heap total 524288K, used 352469K 
