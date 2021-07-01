@@ -32,7 +32,7 @@ Eden区满触发Minor GC，与之前类似，survive区装不下所有存活对�
 
 > [Full GC (Allocation Failure) [Tenured: 174711K->174709K(174784K), 0.0118142 secs] 253367K->182294K(253440K), [Metaspace: 3081K->3081K(1056768K)], 0.0118678 secs] [Times: user=0.01 sys=0.00, real=0.01 secs] 
 
-根据Full GC (Allocation Failure) 得知Full GC是由于大对象或长期存活的对象进入老年代，但老年代空间不足触发Full GC。
+根据Full GC (Allocation Failure) 得知Full GC是由对象提前晋升或长期存活的对象进入老年代，但老年代空间不足触发Full GC。
 
 
 
@@ -162,6 +162,9 @@ G1GC划分为512个region，每个region大小为1024K, 当前Young区三个regi
 
 ## Log Analysis
 
+https://www.cnblogs.com/javaadu/p/11220234.html
+
+https://www.cnblogs.com/yufengzhang/p/10571081.html
 
 
 
