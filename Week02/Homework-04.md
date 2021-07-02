@@ -1,3 +1,4 @@
+[TOC]
 
 # GC Summary
 
