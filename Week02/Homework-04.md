@@ -178,9 +178,120 @@ G1GC划分为512个region，每个region大小为1024K, 当前Young区三个regi
 
 ## Log Analysis
 
-https://www.cnblogs.com/javaadu/p/11220234.html
+### Young GC
+> GC pause (G1 Evacuation Pause) (young), 0.0056021 secs]
 
-https://www.cnblogs.com/yufengzhang/p/10571081.html
+此处触发YoungGC （G1 Evacuation Pause）是由于两次尝试分配内存失败
+>[Parallel Time: 4.8 ms, GC Workers: 8]
+
+Parallel Time 即为STW时间 ，GC Worker表示GC回收线程数
+>[GC Worker Start (ms): Min: 192.3, Avg: 192.4, Max: 192.5, Diff: 0.2]
+
+Min为第一个垃圾收集线程开始工作时JVM启动后经过的时间,Max为最后一个垃圾
+收集线程开始工作时JVM启动后经过的时间,diff为min和max之间的差值
+>[Ext Root Scanning (ms): Min: 0.1, Avg: 0.2, Max: 0.3, Diff: 0.2, Sum: 1.7]
+
+扫描根，根引用连同RS记录的外部引用作为扫描存活对象的入口。
+>[Update RS (ms): Min: 0.0, Avg: 0.0, Max: 0.0, Diff: 0.0, Sum: 0.0]
+>
+每个分区都有自己的RSet，用来记录其他分区指向当前分区的指针，如果RSet有更新，会被标记为dirty，并放入一个缓冲区.
+>[Processed Buffers: Min: 0, Avg: 0.0, Max: 0, Diff: 0, Sum: 0]
+>
+在Update RS这个过程中处理日志缓冲区的数量
+
+>[Scan RS (ms): Min: 0.0, Avg: 0.0, Max: 0.1, Diff: 0.1, Sum: 0.2]
+
+扫描每个新生代分区的RSet
+
+>[Code Root Scanning (ms): Min: 0.0, Avg: 0.5, Max: 3.8, Diff: 3.8, Sum: 3.8]
+
+扫描代码中的root节点
+
+>[Object Copy (ms): Min: 0.0, Avg: 2.9, Max: 3.5, Diff: 3.5, Sum: 23.5]
+
+将当前分区中存活的对象拷贝到新的分区。
+
+>[Termination (ms): Min: 0.0, Avg: 0.6, Max: 0.8, Diff: 0.8, Sum: 5.0]
+[Termination Attempts: Min: 1, Avg: 1.0, Max: 1, Diff: 0, Sum: 8]
+
+当一个垃圾收集线程完成任务后，会尝试帮助其他垃圾线程完成任务，min表示该垃圾收集线程什么时候尝试terminatie，max表示该垃圾收集回收线程什么时候真正terminated。
+>[GC Worker Other (ms): Min: 0.0, Avg: 0.1, Max: 0.2, Diff: 0.2, Sum: 0.4]
+[GC Worker Total (ms): Min: 4.2, Avg: 4.3, Max: 4.4, Diff: 0.2, Sum: 34.7]
+[GC Worker End (ms): Min: 196.7, Avg: 196.8, Max: 196.8, Diff: 0.1]
+
+GC Worker Other->垃圾收集线程在完成其他任务的时间
+GC Worker Total->展示每个垃圾收集线程的最小、最大、平均、差值和总共时间。
+GC Worker End->min表示最早结束的垃圾收集线程结束时该JVM启动后的时间；max表示最晚结束的垃圾收集线程结束时该JVM启动后的时间。
+
+>[Code Root Fixup: 0.0 ms]  释放用于管理并行垃圾收集活动的数据结构
+[Code Root Purge: 0.0 ms] 清理更多的数据结构
+[Clear CT: 0.0 ms] 清理card table
+[Other: 0.7 ms] -> 不确定此处意义
+[Choose CSet: 0.0 ms] 选择要进行回收的分区放入CSet, 垃圾最多的优先
+[Ref Proc: 0.3 ms] 处理java中的各类引用
+[Ref Enq: 0.0 ms] 遍历引用，将不能回收的放入pending列表
+[Redirty Cards: 0.0 ms] 在回收过程中被修改的card会被标记为Dirty
+[Humongous Register: 0.1 ms] 巨型对象可以在新生代收集的时候被回收
+[Humongous Reclaim: 0.0 ms] 回收巨型对象，释放分区的时间
+[Free CSet: 0.0 ms] 将要释放的分区还回到free列表。
+[Eden: 25600.0K(25600.0K)->0.0B(27648.0K) Survivors: 0.0B->4096.0K Heap: 32305.0K(512.0M)->12168.7K(512.0M)]
+[Times: user=0.01 sys=0.01, real=0.01 secs]
+
+### Concurrent Marking
+
+
+>[GC pause (G1 Humongous Allocation) (young) (initial-mark), 0.0009794 secs]
+
+并发垃圾回收阶段开始,initial-mark阶段是作为新生代垃圾收集中的一部分存在的
+
+>[GC concurrent-root-region-scan-start]
+[GC concurrent-root-region-scan-end, 0.0000657 secs]
+
+根分区扫描,扫描新的survivor分区，找到这些分区内的对象指向当前分区的引用.
+
+>[GC concurrent-mark-start]
+[GC concurrent-mark-end, 0.0008221 secs]
+
+并发标记,与应用程序并行运行，线程数量为总线程数的25%。
+标记存活对象,计算存活对象占整个分区的比例
+>[GC remark [Finalize Marking, 0.0001578 secs] [GC ref-proc, 0.0000863 secs] [Unloading, 0.0006849 secs], 0.0013529 secs]
+>
+Remark阶段（STW）,重新标记STAB队列中的对象。
+处理引用，卸载无用的类。
+
+>[GC cleanup 349M->345M(512M), 0.0005762 secs]
+[Times: user=0.00 sys=0.00, real=0.00 secs]
+
+清理阶段（STW）, 清理没有存活对象的老年代分区和巨型对象分区，老年代分区按存活率排序
+
+>[GC concurrent-cleanup-start]
+[GC concurrent-cleanup-end, 0.0000128 secs]
+
+并发清理阶段，完成清理阶段剩余的的工作。
+
+### Mixed GC
+
+>GC pause (G1 Evacuation Pause) (mixed), 0.0036667 secs]
+>
+混合回收会在并发标记结束后进行
+日志与YoungGC相同，只有第一行不同，mixed表示此次GC为混合垃圾回收
+年轻代和老年代会同时被回收
+并发标记后，老年代中百分百为垃圾的内存分段被回收了，部分为垃圾的内存分段被计算了出来，老年代中的内存分段默认分8次回收，G1会优先回收垃圾多的内存分段。垃圾占内存分段比例越高的，越会被先回收。
+
+### Full GC
+
+>[Full GC (Allocation Failure)  460M->332M(512M), 0.0259303 secs]
+[Eden: 0.0B(25600.0K)->0.0B(39936.0K) Survivors: 0.0B->0.0B 
+Heap: 460.9M(512.0M)->332.4M(512.0M)], 
+[Metaspace: 3081K->3081K(1056768K)]
+[Times: user=0.03 sys=0.00, real=0.03 secs]
+
+堆内存空间不足以分配新对象，触发Full GC，单线程，STW时间长，G1应避免FullGC的发生。
+日志与serialGC类似，不再重复。
+
+
+
+
 
 
 
