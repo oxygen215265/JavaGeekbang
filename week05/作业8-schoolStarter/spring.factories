@@ -1,0 +1,1 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=com.htx.schoolstarter.starter.SchoolAutoConfiguration
